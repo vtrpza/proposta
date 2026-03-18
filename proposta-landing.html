@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API de Geração de Conteúdo | Vitor Pouza</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-tertiary: #1a1a24;
+            --accent-cyan: #00f5d4;
+            --accent-violet: #7c3aed;
+            --accent-gold: #f59e0b;
+            --text-primary: #fafafa;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --border-subtle: rgba(255,255,255,0.08);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Noise texture overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.03;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Gradient orbs */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.4;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .orb-1 {
+            width: 600px;
+            height: 600px;
+            background: var(--accent-violet);
+            top: -200px;
+            right: -200px;
+            animation: float 20s ease-in-out infinite;
+        }
+
+        .orb-2 {
+            width: 400px;
+            height: 400px;
+            background: var(--accent-cyan);
+            bottom: 10%;
+            left: -100px;
+            animation: float 25s ease-in-out infinite reverse;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(30px, -30px) scale(1.1); }
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 1.5rem 3rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            background: linear-gradient(to bottom, var(--bg-primary), transparent);
+        }
+
+        .logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--accent-cyan);
+            letter-spacing: 0.1em;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--accent-cyan);
+        }
+
+        /* Main content */
+        main {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 6rem 3rem 4rem;
+            position: relative;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 100px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--accent-cyan);
+            margin-bottom: 2rem;
+            width: fit-content;
+        }
+
+        .hero-badge::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--accent-cyan);
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(3rem, 8vw, 6rem);
+            font-weight: 600;
+            line-height: 1.05;
+            margin-bottom: 1.5rem;
+            max-width: 900px;
+        }
+
+        .hero h1 em {
+            font-style: italic;
+            color: var(--accent-cyan);
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin-bottom: 3rem;
+            line-height: 1.7;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.9375rem;
+            font-weight: 500;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--accent-cyan);
+            color: var(--bg-primary);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(0, 245, 212, 0.3);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+
+        /* Code preview */
+        .code-preview {
+            position: absolute;
+            right: 3rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 400px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8125rem;
+            opacity: 0.9;
+        }
+
+        @media (max-width: 1200px) {
+            .code-preview {
+                position: relative;
+                right: auto;
+                top: auto;
+                transform: none;
+                margin-top: 3rem;
+                width: 100%;
+                max-width: 600px;
+            }
+        }
+
+        .code-header {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .code-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .code-dot.red { background: #ff5f56; }
+        .code-dot.yellow { background: #ffbd2e; }
+        .code-dot.green { background: #27c93f; }
+
+        .code-content {
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        .code-content .keyword { color: var(--accent-violet); }
+        .code-content .string { color: var(--accent-cyan); }
+        .code-content .comment { color: var(--text-muted); }
+        .code-content .function { color: var(--accent-gold); }
+
+        /* Section styling */
+        section {
+            padding: 6rem 3rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            margin-bottom: 4rem;
+        }
+
+        .section-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--accent-cyan);
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            margin-bottom: 1rem;
+        }
+
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        /* How it works - Architecture */
+        .architecture {
+            background: var(--bg-secondary);
+            border-radius: 24px;
+            padding: 3rem;
+            margin: 2rem 0;
+        }
+
+        .flow-diagram {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .flow-step {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            border-left: 3px solid var(--accent-cyan);
+            transition: all 0.3s ease;
+        }
+
+        .flow-step:hover {
+            transform: translateX(10px);
+            border-left-width: 6px;
+        }
+
+        .flow-number {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: var(--accent-cyan);
+            min-width: 40px;
+        }
+
+        .flow-content h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .flow-content p {
+            color: var(--text-secondary);
+            font-size: 0.9375rem;
+        }
+
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 3rem;
+        }
+
+        .feature-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            border-color: var(--accent-cyan);
+            transform: translateY(-4px);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--accent-violet), var(--accent-cyan));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            font-size: 0.9375rem;
+            line-height: 1.6;
+        }
+
+        /* Scope Section */
+        .scope-list {
+            list-style: none;
+        }
+
+        .scope-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1.25rem 0;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .scope-list li::before {
+            content: '→';
+            color: var(--accent-cyan);
+            font-weight: 600;
+        }
+
+        /* Investment Card */
+        .investment-section {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            border-radius: 24px;
+            padding: 4rem;
+            text-align: center;
+            margin: 4rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .investment-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+        }
+
+        .price {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(3rem, 6vw, 5rem);
+            font-weight: 700;
+            color: var(--accent-cyan);
+            margin: 1rem 0;
+        }
+
+        .price-terms {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .timeline-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: rgba(0, 245, 212, 0.1);
+            border: 1px solid var(--accent-cyan);
+            border-radius: 100px;
+            color: var(--accent-cyan);
+            font-weight: 500;
+        }
+
+        /* Comparison Table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 2rem;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 1.25rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .comparison-table th {
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .comparison-table tr:hover td {
+            background: var(--bg-secondary);
+        }
+
+        .check {
+            color: var(--accent-cyan);
+            font-weight: 600;
+        }
+
+        .cross {
+            color: var(--text-muted);
+        }
+
+        /* Why Section */
+        .why-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .why-card {
+            padding: 2rem;
+            border-left: 2px solid var(--accent-cyan);
+            background: linear-gradient(90deg, rgba(0, 245, 212, 0.05), transparent);
+        }
+
+        .why-number {
+            font-family: 'Playfair Display', serif;
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            opacity: 0.3;
+            line-height: 1;
+            margin-bottom: 1rem;
+        }
+
+        .why-card h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        .why-card p {
+            color: var(--text-secondary);
+            font-size: 0.9375rem;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            text-align: center;
+            padding: 8rem 3rem;
+        }
+
+        .cta-section h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+
+        .cta-section p {
+            color: var(--text-secondary);
+            font-size: 1.125rem;
+            max-width: 600px;
+            margin: 0 auto 2rem;
+        }
+
+        /* Footer */
+        footer {
+            padding: 3rem;
+            text-align: center;
+            border-top: 1px solid var(--border-subtle);
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        footer strong {
+            color: var(--text-primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            nav {
+                padding: 1rem 1.5rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .hero {
+                padding: 5rem 1.5rem 3rem;
+            }
+
+            section {
+                padding: 4rem 1.5rem;
+            }
+
+            .architecture {
+                padding: 2rem 1.5rem;
+            }
+
+            .investment-section {
+                padding: 3rem 1.5rem;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Scroll animations */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s ease;
+        }
+
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <nav>
+        <div class="logo">VP.DEV</div>
+        <ul class="nav-links">
+            <li><a href="#como-funciona">Como Funciona</a></li>
+            <li><a href="#escopo">Escopo</a></li>
+            <li><a href="#investimento">Investimento</a></li>
+            <li><a href="#contato">Contato</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-badge">Proposta Comercial</div>
+            <h1>Sua API Própria para <em>Geração de Conteúdo</em> com IA</h1>
+            <p class="hero-subtitle">
+                Transforme interações com Custom GPT em posts de blog completos — com texto, imagens, 
+                SEO e estrutura editorial profissional. Um ativo digital vitalício, não um aluguel de automação.
+            </p>
+            <div class="hero-cta">
+                <a href="#investimento" class="btn btn-primary">Ver Investimento</a>
+                <a href="#como-funciona" class="btn btn-secondary">Entender a Arquitetura</a>
+            </div>
+
+            <div class="code-preview">
+                <div class="code-header">
+                    <div class="code-dot red"></div>
+                    <div class="code-dot yellow"></div>
+                    <div class="code-dot green"></div>
+                </div>
+                <div class="code-content">
+                    <span class="comment">// Exemplo de requisição</span><br>
+                    <span class="keyword">POST</span> /api/v1/generate-post<br><br>
+                    {<br>
+                    &nbsp;&nbsp;<span class="string">"tema"</span>: <span class="string">"SEO e crescimento orgânico"</span>,<br>
+                    &nbsp;&nbsp;<span class="string">"tom"</span>: <span class="string">"profissional"</span>,<br>
+                    &nbsp;&nbsp;<span class="string">"autor"</span>: <span class="string">"Vitor Pouza"</span>,<br>
+                    &nbsp;&nbsp;<span class="string">"incluirImagens"</span>: <span class="function">true</span><br>
+                    }
+                </div>
+            </div>
+        </section>
+
+        <!-- Como Funciona -->
+        <section id="como-funciona">
+            <div class="section-header reveal">
+                <div class="section-label">Arquitetura</div>
+                <h2 class="section-title">Como a Solução Funciona</h2>
+            </div>
+
+            <div class="architecture reveal">
+                <div class="flow-diagram">
+                    <div class="flow-step">
+                        <div class="flow-number">01</div>
+                        <div class="flow-content">
+                            <h3>Interação com Custom GPT</h3>
+                            <p>O usuário faz uma solicitação natural: "Crie um post sobre SEO e crescimento orgânico"</p>
+                        </div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-number">02</div>
+                        <div class="flow-content">
+                            <h3>Action para sua API</h3>
+                            <p>O GPT chama uma Action conectada diretamente à sua API proprietária</p>
+                        </div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-number">03</div>
+                        <div class="flow-content">
+                            <h3>Processamento & Geração</h3>
+                            <p>A API aciona a OpenAI Responses API para criar texto, estrutura markdown e metadados SEO</p>
+                        </div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-number">04</div>
+                        <div class="flow-content">
+                            <h3>Imagens & Entrega</h3>
+                            <p>Geração de imagens e retorno de conteúdo completo pronto para publicação</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="features-grid reveal">
+                <div class="feature-card">
+                    <div class="feature-icon">📝</div>
+                    <h3>Texto & Markdown</h3>
+                    <p>Posts completos com estrutura editorial, títulos otimizados e formatação profissional em markdown</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎨</div>
+                    <h3>Imagens Geradas</h3>
+                    <p>Imagens customizadas para cada artigo, criadas automaticamente com prompts otimizados</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Integração Direta</h3>
+                    <p>Endpoint pronto para CMS, automações, dashboards ou qualquer pipeline de publicação</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎭</div>
+                    <h3>Tom Configurável</h3>
+                    <p>Parametrização de tom de voz, autor e estilo editorial para cada publicação</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Escopo -->
+        <section id="escopo">
+            <div class="section-header reveal">
+                <div class="section-label">Entrega</div>
+                <h2 class="section-title">Escopo Completo</h2>
+                <p style="color: var(--text-secondary); margin-top: 1rem;">Entrega em 5 dias úteis</p>
+            </div>
+
+            <ul class="scope-list reveal">
+                <li>API backend completa para recepção das chamadas do Custom GPT</li>
+                <li>Integração com OpenAI para geração de texto via Responses API</li>
+                <li>Integração com geração de imagens (DALL-E ou similar)</li>
+                <li>Retorno padronizado em markdown com estrutura editorial</li>
+                <li>Parametrização completa: tom de voz, autor, tema, estrutura</li>
+                <li>Endpoint preparado para integração com CMS e automações futuras</li>
+                <li>Documentação básica de uso e endpoints</li>
+                <li>Testes ponta a ponta do fluxo principal</li>
+            </ul>
+        </section>
+
+        <!-- Investimento -->
+        <section id="investimento">
+            <div class="investment-section reveal">
+                <div class="section-label">Investimento</div>
+                <div class="price">R$ 4.600</div>
+                <p class="price-terms">50% na entrada • 50% na entrega</p>
+                <div class="timeline-badge">⏱️ 5 dias úteis</div>
+            </div>
+        </section>
+
+        <!-- Por que API Própria -->
+        <section>
+            <div class="section-header reveal">
+                <div class="section-label">Vantagens</div>
+                <h2 class="section-title">Por Que API Própria?</h2>
+            </div>
+
+            <div class="why-grid reveal">
+                <div class="why-card">
+                    <div class="why-number">01</div>
+                    <h3>Produto Próprio</h3>
+                    <p>Não é aluguel de fluxo. Você passa a ter uma base sua, com regras e arquitetura controladas internamente.</p>
+                </div>
+                <div class="why-card">
+                    <div class="why-number">02</div>
+                    <h3>Uso Vitalício</h3>
+                    <p>O sistema permanece como patrimônio digital. Custos recorrentes apenas em infraestrutura e API.</p>
+                </div>
+                <div class="why-card">
+                    <div class="why-number">03</div>
+                    <h3>Estrutura Modular</h3>
+                    <p>Novas features com baixa fricção: WordPress, LinkedIn, newsletter, clusterização de keywords, múltiplos autores.</p>
+                </div>
+                <div class="why-card">
+                    <div class="why-number">04</div>
+                    <h3>Integração Facilitada</h3>
+                    <p>API preparada para CMS, automações, dashboards, bancos de dados e plataformas internas.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Comparação -->
+        <section>
+            <div class="section-header reveal">
+                <div class="section-label">Comparação</div>
+                <h2 class="section-title">API Própria vs. Automações</h2>
+            </div>
+
+            <table class="comparison-table reveal">
+                <thead>
+                    <tr>
+                        <th>Característica</th>
+                        <th>Make / n8n</th>
+                        <th>API Própria</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Dependência de terceiros</td>
+                        <td class="cross">Alta — limitações de plataforma</td>
+                        <td class="check">Baixa — controle total</td>
+                    </tr>
+                    <tr>
+                        <td>Custo recorrente</td>
+                        <td class="cross">Mensalidade + créditos/execuções</td>
+                        <td class="check">Apenas infraestrutura</td>
+                    </tr>
+                    <tr>
+                        <td>Customização profunda</td>
+                        <td class="cross">Limitada à interface visual</td>
+                        <td class="check">Ilimitada — código nativo</td>
+                    </tr>
+                    <tr>
+                        <td>Escalabilidade</td>
+                        <td class="cross">Restrita a planos pagos</td>
+                        <td class="check">Proporcional ao uso</td>
+                    </tr>
+                    <tr>
+                        <td>Propriedade intelectual</td>
+                        <td class="cross">Fluxo alugado</td>
+                        <td class="check">Ativo próprio</td>
+                    </tr>
+                    <tr>
+                        <td>Evolução para produto</td>
+                        <td class="cross">Difícil — dependência visual</td>
+                        <td class="check">Natural — base de código</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p style="color: var(--text-secondary); margin-top: 2rem; font-size: 0.9375rem; text-align: center;">
+                Make e n8n são excelentes ferramentas, mas para um motor de conteúdo central, 
+                <strong style="color: var(--text-primary);">a API própria oferece controle, previsibilidade e patrimônio digital.</strong>
+            </p>
+        </section>
+
+        <!-- CTA -->
+        <section class="cta-section" id="contato">
+            <div class="reveal">
+                <h2>Pronto para construir seu <em style="color: var(--accent-cyan); font-style: italic;">ativo digital</em>?</h2>
+                <p>
+                    Em 5 dias úteis você terá uma solução funcional, modular e preparada para crescer. 
+                    Um investimento de R$ 4.600 em um produto próprio, não em automações alugadas.
+                </p>
+                <div class="hero-cta" style="justify-content: center;">
+                    <a href="mailto:vitor@vp.dev" class="btn btn-primary">Iniciar Projeto</a>
+                    <a href="#como-funciona" class="btn btn-secondary">Revisar Detalhes</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>Proposta elaborada por <strong>Vitor Pouza</strong></p>
+        <p style="margin-top: 0.5rem;">VP.DEV — Desenvolvimento de APIs & Integrações</p>
+    </footer>
+
+    <script>
+        // Smooth scroll for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Reveal animations on scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.reveal').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Parallax effect for orbs
+        document.addEventListener('mousemove', (e) => {
+            const orbs = document.querySelectorAll('.orb');
+            const x = e.clientX / window.innerWidth;
+            const y = e.clientY / window.innerHeight;
+
+            orbs.forEach((orb, index) => {
+                const speed = (index + 1) * 20;
+                const xOffset = (0.5 - x) * speed;
+                const yOffset = (0.5 - y) * speed;
+                orb.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
+            });
+        });
+    </script>
+</body>
+</html>
