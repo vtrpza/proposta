@@ -168,11 +168,11 @@
 
         .hero h1 {
             font-family: 'Playfair Display', serif;
-            font-size: clamp(3rem, 8vw, 6rem);
+            font-size: clamp(2.5rem, 6vw, 5rem);
             font-weight: 600;
             line-height: 1.05;
             margin-bottom: 1.5rem;
-            max-width: 900px;
+            max-width: 700px;
         }
 
         .hero h1 em {
@@ -230,10 +230,10 @@
         /* Code preview */
         .code-preview {
             position: absolute;
-            right: 3rem;
-            top: 50%;
+            right: 5rem;
+            top: 55%;
             transform: translateY(-50%);
-            width: 400px;
+            width: 380px;
             background: var(--bg-secondary);
             border: 1px solid var(--border-subtle);
             border-radius: 12px;
@@ -252,6 +252,13 @@
                 margin-top: 3rem;
                 width: 100%;
                 max-width: 600px;
+            }
+        }
+
+        @media (min-width: 1201px) and (max-width: 1400px) {
+            .code-preview {
+                right: 2rem;
+                width: 340px;
             }
         }
 
@@ -852,7 +859,7 @@
                     Um investimento de R$ 4.600 em um produto próprio, não em automações alugadas.
                 </p>
                 <div class="hero-cta" style="justify-content: center;">
-                    <a href="mailto:vitor@vp.dev" class="btn btn-primary">Iniciar Projeto</a>
+                    <a href="https://wa.me/5511941830089" target="_blank" class="btn btn-primary">Iniciar Projeto</a>
                     <a href="#como-funciona" class="btn btn-secondary">Revisar Detalhes</a>
                 </div>
             </div>
